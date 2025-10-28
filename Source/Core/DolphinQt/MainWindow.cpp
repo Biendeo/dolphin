@@ -257,12 +257,7 @@ MainWindow::MainWindow(Core::System& system, std::unique_ptr<BootParameters> boo
           });
 #endif
 
-  connect(m_cheats_manager, &CheatsManager::OpenGeneralSettings, this,
-          &MainWindow::ShowGeneralWindow);
-
 #ifdef USE_RETRO_ACHIEVEMENTS
-  connect(m_cheats_manager, &CheatsManager::OpenAchievementSettings, this,
-          &MainWindow::ShowAchievementSettings);
   connect(m_game_list, &GameList::OpenAchievementSettings, this,
           &MainWindow::ShowAchievementSettings);
 #endif  // USE_RETRO_ACHIEVEMENTS
@@ -482,7 +477,6 @@ void MainWindow::CreateComponents()
   m_watch_widget = new WatchWidget(this);
   m_breakpoint_widget = new BreakpointWidget(this);
   m_code_widget = new CodeWidget(this);
-  m_cheats_manager = new CheatsManager(m_system, this);
   m_assembler_widget = new AssemblerWidget(this);
 
   const auto request_watch = [this](QString name, u32 addr) {
@@ -524,8 +518,6 @@ void MainWindow::CreateComponents()
   });
   connect(m_breakpoint_widget, &BreakpointWidget::ShowMemory, m_memory_widget,
           &MemoryWidget::SetAddress);
-  connect(m_cheats_manager, &CheatsManager::ShowMemory, m_memory_widget, &MemoryWidget::SetAddress);
-  connect(m_cheats_manager, &CheatsManager::RequestWatch, request_watch);
 }
 
 void MainWindow::ConnectMenuBar()
@@ -593,6 +585,7 @@ void MainWindow::ConnectMenuBar()
   connect(m_menu_bar, &MenuBar::StopRecording, this, &MainWindow::OnStopRecording);
   connect(m_menu_bar, &MenuBar::ExportRecording, this, &MainWindow::OnExportRecording);
   connect(m_menu_bar, &MenuBar::ShowTASInput, this, &MainWindow::ShowTASInput);
+  connect(m_menu_bar, &MenuBar::ConfigureOSD, this, &MainWindow::ShowOSDWindow);
 
   // View
   connect(m_menu_bar, &MenuBar::ShowList, m_game_list, &GameList::SetListView);
@@ -1337,6 +1330,12 @@ void MainWindow::ShowGeneralWindow()
   m_settings_window->SelectPane(SettingsWindowPaneIndex::General);
 }
 
+void MainWindow::ShowOSDWindow()
+{
+  ShowSettingsWindow();
+  m_settings_window->SelectPane(SettingsWindowPaneIndex::OnScreenDisplay);
+}
+
 void MainWindow::ShowAboutDialog()
 {
   AboutDialog about{this};
@@ -1381,8 +1380,8 @@ void MainWindow::ShowFIFOPlayer()
 {
   if (!m_fifo_window)
   {
-    m_fifo_window = new FIFOPlayerWindow(m_system.GetFifoPlayer(), m_system.GetFifoRecorder());
-    connect(m_fifo_window, &FIFOPlayerWindow::LoadFIFORequested, this,
+    m_fifo_window.reset(new FIFOPlayerWindow(m_system.GetFifoPlayer(), m_system.GetFifoRecorder()));
+    connect(m_fifo_window.get(), &FIFOPlayerWindow::LoadFIFORequested, this,
             [this](const QString& path) { StartGame(path, ScanForSecondDisc::No); });
   }
 
@@ -2052,6 +2051,22 @@ void MainWindow::ShowResourcePackManager()
 
 void MainWindow::ShowCheatsManager()
 {
+  if (!m_cheats_manager)
+  {
+    m_cheats_manager = new CheatsManager(m_system, this);
+
+    connect(m_cheats_manager, &CheatsManager::ShowMemory, m_memory_widget,
+            &MemoryWidget::SetAddress);
+    connect(m_cheats_manager, &CheatsManager::RequestWatch, m_watch_widget, &WatchWidget::AddWatch);
+    connect(m_cheats_manager, &CheatsManager::OpenGeneralSettings, this,
+            &MainWindow::ShowGeneralWindow);
+
+#ifdef USE_RETRO_ACHIEVEMENTS
+    connect(m_cheats_manager, &CheatsManager::OpenAchievementSettings, this,
+            &MainWindow::ShowAchievementSettings);
+#endif  // USE_RETRO_ACHIEVEMENTS
+  }
+
   m_cheats_manager->show();
 }
 

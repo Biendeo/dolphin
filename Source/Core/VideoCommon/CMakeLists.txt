@@ -29,6 +29,8 @@ add_library(videocommon
   Assets/TextureAsset.h
   Assets/TextureAssetUtils.cpp
   Assets/TextureAssetUtils.h
+  Assets/TextureSamplerValue.cpp
+  Assets/TextureSamplerValue.h
   Assets/Types.h
   Assets/WatchableFilesystemAssetLibrary.h
   AsyncRequests.cpp
@@ -216,13 +218,14 @@ add_library(videocommon
 target_link_libraries(videocommon
 PUBLIC
   core
+  glslang::glslang
 PRIVATE
   fmt::fmt
   spng::spng
   xxhash::xxhash
   imgui
   implot
-  glslang
+  glslang::SPIRV
   tinygltf
 )
 
@@ -264,16 +267,6 @@ if(FFmpeg_FOUND)
     )
   endif()
 endif()
-
-# Silence warnings on glslang by flagging it as a system include
-target_include_directories(videocommon
-SYSTEM PUBLIC
-  ${CMAKE_SOURCE_DIR}/Externals/glslang/glslang/Public
-SYSTEM PRIVATE
-  ${CMAKE_SOURCE_DIR}/Externals/glslang/StandAlone
-  ${CMAKE_SOURCE_DIR}/Externals/glslang/SPIRV
-  ${CMAKE_SOURCE_DIR}/Externals/glslang
-)
 
 if(MSVC)
   # Add precompiled header

@@ -169,6 +169,7 @@ list(APPEND CMAKE_MODULE_PATH
 # Support functions
 include(CheckAndAddFlag)
 include(CheckCCompilerFlag)
+include(CheckSymbolExists)
 include(DolphinCompileDefinitions)
 include(DolphinDisableWarningsMSVC)
 include(DolphinLibraryTools)
@@ -651,7 +652,9 @@ dolphin_find_optional_system_library_pkgconfig(FMT
 
 add_subdirectory(Externals/imgui)
 add_subdirectory(Externals/implot)
-add_subdirectory(Externals/glslang)
+
+dolphin_find_optional_system_library(glslang Externals/glslang 15.0)
+
 # SPIRV-Cross is used on Windows for GLSL to HLSL conversion for the Direct3D 11 and Direct3D 12
 # video backends, and on Apple devices for the Metal video backend.
 if(WIN32 OR APPLE)
@@ -737,11 +740,13 @@ dolphin_find_optional_system_library(MBEDTLS Externals/mbedtls 2.28)
 
 dolphin_find_optional_system_library(CURL Externals/curl)
 
-if(NOT ANDROID)
-  dolphin_find_optional_system_library(Iconv Externals/libiconv-1.14)
-else()
-  message(STATUS "Using static iconv from Externals")
-  add_subdirectory(Externals/libiconv-1.14 EXCLUDE_FROM_ALL)
+if(NOT WIN32)
+  if(NOT ANDROID)
+    dolphin_find_optional_system_library(Iconv Externals/libiconv 1.14)
+  else()
+    message(STATUS "Using static iconv from Externals")
+    add_subdirectory(Externals/libiconv EXCLUDE_FROM_ALL)
+  endif()
 endif()
 
 if(NOT ANDROID)

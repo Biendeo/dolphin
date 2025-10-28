@@ -57,11 +57,6 @@ public:
 
   OPCODE_CALLBACK(CPState& GetCPState()) { return m_cpmem; }
 
-  OPCODE_CALLBACK(u32 GetVertexSize(u8 vat))
-  {
-    return VertexLoaderBase::GetVertexSize(GetCPState().vtx_desc, GetCPState().vtx_attr[vat]);
-  }
-
   bool m_start_of_primitives = false;
   bool m_end_of_primitives = false;
   bool m_efb_copy = false;
@@ -711,12 +706,12 @@ void FifoPlayer::LoadTextureMemory()
 
 void FifoPlayer::WriteCP(u32 address, u16 value)
 {
-  m_system.GetMMU().Write_U16(value, 0xCC000000 | address);
+  m_system.GetMMU().Write<u16>(value, 0xCC000000 | address);
 }
 
 void FifoPlayer::WritePI(u32 address, u32 value)
 {
-  m_system.GetMMU().Write_U32(value, 0xCC003000 | address);
+  m_system.GetMMU().Write<u32>(value, 0xCC003000 | address);
 }
 
 void FifoPlayer::FlushWGP()
@@ -815,13 +810,13 @@ bool FifoPlayer::ShouldLoadXF(u8 reg)
 bool FifoPlayer::IsIdleSet() const
 {
   CommandProcessor::UCPStatusReg status =
-      m_system.GetMMU().Read_U16(0xCC000000 | CommandProcessor::STATUS_REGISTER);
+      m_system.GetMMU().Read<u16>(0xCC000000 | CommandProcessor::STATUS_REGISTER);
   return status.CommandIdle;
 }
 
 bool FifoPlayer::IsHighWatermarkSet() const
 {
   CommandProcessor::UCPStatusReg status =
-      m_system.GetMMU().Read_U16(0xCC000000 | CommandProcessor::STATUS_REGISTER);
+      m_system.GetMMU().Read<u16>(0xCC000000 | CommandProcessor::STATUS_REGISTER);
   return status.OverflowHiWatermark;
 }

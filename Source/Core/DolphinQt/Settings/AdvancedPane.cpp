@@ -6,12 +6,14 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDateTimeEdit>
+#include <QFontMetrics>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QRadioButton>
 #include <QSignalBlocker>
+#include <QTimeZone>
 #include <QVBoxLayout>
 #include <cmath>
 
@@ -94,13 +96,19 @@ void AdvancedPane::CreateLayout()
   main_layout->addWidget(timing_group);
   auto* timing_group_layout = new QVBoxLayout{timing_group};
   auto* const correct_time_drift =
+      // i18n: Correct is a verb
       new ConfigBool{tr("Correct Time Drift"), Config::MAIN_CORRECT_TIME_DRIFT};
   correct_time_drift->SetDescription(
+      // i18n: Internet play refers to services like Wiimmfi, not the NetPlay feature in Dolphin
       tr("Allow the emulated console to run fast after stutters,"
          "<br>pursuing accurate overall elapsed time unless paused or speed-adjusted."
          "<br><br>This may be useful for internet play."
          "<br><br><dolphin_emphasis>If unsure, leave this unchecked.</dolphin_emphasis>"));
   timing_group_layout->addWidget(correct_time_drift);
+
+  // Make all labels the same width, so that the sliders are aligned.
+  const QFontMetrics font_metrics{font()};
+  const int label_width = font_metrics.boundingRect(QStringLiteral(" 500% (000.00 VPS)")).width();
 
   auto* clock_override = new QGroupBox(tr("Clock Override"));
   auto* clock_override_layout = new QVBoxLayout();
@@ -120,6 +128,8 @@ void AdvancedPane::CreateLayout()
   cpu_clock_override_slider_layout->addWidget(m_cpu_clock_override_slider);
 
   m_cpu_label = new QLabel();
+  m_cpu_label->setFixedWidth(label_width);
+  m_cpu_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   cpu_clock_override_slider_layout->addWidget(m_cpu_label);
 
   std::function<void()> cpu_text = [this]() {
@@ -132,8 +142,7 @@ void AdvancedPane::CreateLayout()
   };
 
   cpu_text();
-  connect(m_cpu_clock_override_slider, &QSlider::valueChanged, this,
-          [this, cpu_text]() { cpu_text(); });
+  connect(m_cpu_clock_override_slider, &QSlider::valueChanged, this, cpu_text);
 
   m_cpu_clock_override_checkbox->SetDescription(
       tr("Adjusts the emulated CPU's clock rate.<br><br>"
@@ -164,6 +173,8 @@ void AdvancedPane::CreateLayout()
   vi_rate_override_slider_layout->addWidget(m_vi_rate_override_slider);
 
   m_vi_label = new QLabel();
+  m_vi_label->setFixedWidth(label_width);
+  m_vi_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   vi_rate_override_slider_layout->addWidget(m_vi_label);
   std::function<void()> vi_text = [this]() {
     const int percent =
@@ -177,8 +188,7 @@ void AdvancedPane::CreateLayout()
   };
 
   vi_text();
-  connect(m_vi_rate_override_slider, &QSlider::valueChanged, this,
-          [this, vi_text]() { vi_text(); });
+  connect(m_vi_rate_override_slider, &QSlider::valueChanged, this, vi_text);
 
   m_vi_rate_override_checkbox->SetDescription(
       tr("Adjusts the VBI frequency. Also adjusts the emulated CPU's "
@@ -210,6 +220,8 @@ void AdvancedPane::CreateLayout()
 
   m_mem1_label =
       new QLabel(tr("%1 MB (MEM1)").arg(QString::number(m_mem1_override_slider->value())));
+  m_mem1_label->setFixedWidth(label_width);
+  m_mem1_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   mem1_override_slider_layout->addWidget(m_mem1_label);
   connect(m_mem1_override_slider, &QSlider::valueChanged, this, [this](int value) {
     m_mem1_label->setText(tr("%1 MB (MEM1)").arg(QString::number(value)));
@@ -224,6 +236,8 @@ void AdvancedPane::CreateLayout()
 
   m_mem2_label =
       new QLabel(tr("%1 MB (MEM2)").arg(QString::number(m_mem2_override_slider->value())));
+  m_mem2_label->setFixedWidth(label_width);
+  m_mem2_label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   mem2_override_slider_layout->addWidget(m_mem2_label);
   connect(m_mem2_override_slider, &QSlider::valueChanged, this, [this](int value) {
     m_mem2_label->setText(tr("%1 MB (MEM2)").arg(QString::number(value)));
@@ -251,9 +265,18 @@ void AdvancedPane::CreateLayout()
       QStringLiteral("mm"), QStringLiteral("mm:ss")));
 
   QtUtils::ShowFourDigitYear(m_custom_rtc_datetime);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+  m_custom_rtc_datetime->setDateTimeRange(QDateTime({2000, 1, 1}, {0, 0, 0}, QTimeZone::UTC),
+                                          QDateTime({2099, 12, 31}, {23, 59, 59}, QTimeZone::UTC));
+#else
   m_custom_rtc_datetime->setDateTimeRange(QDateTime({2000, 1, 1}, {0, 0, 0}, Qt::UTC),
                                           QDateTime({2099, 12, 31}, {23, 59, 59}, Qt::UTC));
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+  m_custom_rtc_datetime->setTimeZone(QTimeZone::UTC);
+#else
   m_custom_rtc_datetime->setTimeSpec(Qt::UTC);
+#endif
   rtc_options->layout()->addWidget(m_custom_rtc_datetime);
 
   m_custom_rtc_checkbox->SetDescription(
