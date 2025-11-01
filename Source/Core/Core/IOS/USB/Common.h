@@ -24,14 +24,33 @@ enum StandardDeviceRequestCodes
   REQUEST_SET_INTERFACE = 11,
 };
 
+enum LogitechMicrophoneRequestCodes
+{
+  REQUEST_SET_CUR = 0x01,
+  REQUEST_GET_CUR = 0x81,
+  REQUEST_SET_MIN = 0x02,
+  REQUEST_GET_MIN = 0x82,
+  REQUEST_SET_MAX = 0x03,
+  REQUEST_GET_MAX = 0x83,
+  REQUEST_SET_RES = 0x04,
+  REQUEST_GET_RES = 0x84,
+  REQUEST_SET_MEM = 0x05,
+  REQUEST_GET_MEM = 0x85,
+  REQUEST_GET_STAT = 0xff
+};
+
 enum ControlRequestTypes
 {
   DIR_HOST2DEVICE = 0,
   DIR_DEVICE2HOST = 1,
   TYPE_STANDARD = 0,
+  TYPE_CLASS = 1,
   TYPE_VENDOR = 2,
+  TYPE_RESERVED = 3,
   REC_DEVICE = 0,
   REC_INTERFACE = 1,
+  REC_ENDPOINT = 2,
+  REC_OTHER = 3,
 };
 
 constexpr u16 USBHDR(u8 dir, u8 type, u8 recipient, u8 request)
