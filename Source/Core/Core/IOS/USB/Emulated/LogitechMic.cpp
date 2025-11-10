@@ -276,6 +276,15 @@ int LogitechMic::GetAudioControl(std::unique_ptr<CtrlMessage>& cmd)
     }
     break;
   }
+  default:
+  {
+    WARN_LOG_FMT(IOS_USB,
+                 "GetAudioControl: Unknown request: bCs={:02x} bCn={:02x} bRequestType={:02x} "
+                 "bRequest={:02x} bIndex={:02x} aid={:08x}",
+                 Common::ToUnderlying(cs), cn, cmd->request_type, Common::ToUnderlying(request),
+                 cmd->index, USBGETAID(cs, request, cmd->index));
+    break;
+  }
   }
   return ret;
 }
@@ -314,16 +323,8 @@ int LogitechMic::SetAudioControl(std::unique_ptr<CtrlMessage>& cmd)
       vol = (vol * 255 + 0x4400) / 0x8800;
       vol = std::min<uint16_t>(vol, 255);
 
-      if (cn == 0xff)
-      {
-        if (m_sampler.volume != vol)
-          m_sampler.volume = static_cast<u8>(vol);
-      }
-      else
-      {
-        if (m_sampler.volume != vol)
-          m_sampler.volume = static_cast<u8>(vol);
-      }
+      if (m_sampler.volume != vol)
+        m_sampler.volume = static_cast<u8>(vol);
 
       DEBUG_LOG_FMT(IOS_USB, "SetAudioControl: Setting volume to [{:02x}] [original={:04x}]",
                     m_sampler.volume.load(), original_vol);
@@ -335,6 +336,15 @@ int LogitechMic::SetAudioControl(std::unique_ptr<CtrlMessage>& cmd)
   case USBGETAID(FeatureUnitControlSelector::AutomaticGain, RequestCode::SetCur, 0x0200):
   {
     ret = 0;
+    break;
+  }
+  default:
+  {
+    WARN_LOG_FMT(IOS_USB,
+                 "SetAudioControl: Unknown request: bCs={:02x} bCn={:02x} bRequestType={:02x} "
+                 "bRequest={:02x} bIndex={:02x} aid={:08x}",
+                 Common::ToUnderlying(cs), cn, cmd->request_type, Common::ToUnderlying(request),
+                 cmd->index, USBGETAID(cs, request, cmd->index));
     break;
   }
   }
@@ -387,6 +397,15 @@ int LogitechMic::EndpointAudioControl(std::unique_ptr<CtrlMessage>& cmd)
     memory.Write_U8((m_sampler.sample_rate >> 8) & 0xff, cmd->data_address + 1);
     memory.Write_U8((m_sampler.sample_rate >> 16) & 0xff, cmd->data_address);
     ret = 3;
+    break;
+  }
+  default:
+  {
+    WARN_LOG_FMT(IOS_USB,
+                 "SetAudioControl: Unknown request: bCs={:02x} bCn={:02x} bRequestType={:02x} "
+                 "bRequest={:02x} bIndex={:02x} aid={:08x}",
+                 Common::ToUnderlying(cs), cn, cmd->request_type, Common::ToUnderlying(request),
+                 cmd->index, USBGETAID(cs, request, cmd->index));
     break;
   }
   }
@@ -578,9 +597,12 @@ int LogitechMic::SubmitTransfer(std::unique_ptr<CtrlMessage> cmd)
       ERROR_LOG_FMT(IOS_USB,
                     "[{:04x}:{:04x} {}:{}] Get Control Failed index={:04x} value={:04x} ret={}",
                     m_vid, m_pid, m_index, m_active_interface, cmd->index, cmd->value, ret);
-      goto fail;
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, IPC_STALL);
     }
-    cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    else
+    {
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    }
     break;
   }
   case LogitechUSBHDR(DIR_DEVICE2HOST, TYPE_CLASS, REC_INTERFACE, RequestCode::SetCur):
@@ -596,9 +618,12 @@ int LogitechMic::SubmitTransfer(std::unique_ptr<CtrlMessage> cmd)
       ERROR_LOG_FMT(IOS_USB,
                     "[{:04x}:{:04x} {}:{}] Set Control Failed index={:04x} value={:04x} ret={}",
                     m_vid, m_pid, m_index, m_active_interface, cmd->index, cmd->value, ret);
-      goto fail;
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, IPC_STALL);
     }
-    cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    else
+    {
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    }
     break;
   }
   case LogitechUSBHDR(DIR_HOST2DEVICE, TYPE_CLASS, REC_ENDPOINT, RequestCode::GetCur):
@@ -619,9 +644,12 @@ int LogitechMic::SubmitTransfer(std::unique_ptr<CtrlMessage> cmd)
           IOS_USB,
           "[{:04x}:{:04x} {}:{}] Enndpoint Control Failed index={:04x} value={:04x} ret={}", m_vid,
           m_pid, m_index, m_active_interface, cmd->index, cmd->value, ret);
-      goto fail;
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, IPC_STALL);
     }
-    cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    else
+    {
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    }
     break;
   }
   case LogitechUSBHDR(DIR_HOST2DEVICE, TYPE_CLASS, REC_INTERFACE, RequestCode::SetCur):
@@ -639,13 +667,15 @@ int LogitechMic::SubmitTransfer(std::unique_ptr<CtrlMessage> cmd)
           IOS_USB,
           "[{:04x}:{:04x} {}:{}] Set Control HOST2DEVICE Failed index={:04x} value={:04x} ret={}",
           m_vid, m_pid, m_index, m_active_interface, cmd->index, cmd->value, ret);
-      goto fail;
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, IPC_STALL);
     }
-    cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    else
+    {
+      cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, ret);
+    }
     break;
   }
   default:
-  fail:
     NOTICE_LOG_FMT(IOS_USB, "Unknown command");
     cmd->GetEmulationKernel().EnqueueIPCReply(cmd->ios_request, IPC_STALL);
   }
