@@ -29,13 +29,13 @@ u32 WiiSpeakState::GetDefaultSamplingRate() const
 class MicrophoneWiiSpeak final : public Microphone
 {
 public:
-  explicit MicrophoneWiiSpeak(const WiiSpeakState& sampler) : Microphone(sampler, GetWorkerName())
+  explicit MicrophoneWiiSpeak(const WiiSpeakState& sampler)
+      : Microphone(sampler, "Wii Speak Worker")
   {
   }
 
 private:
 #ifdef HAVE_CUBEB
-  std::string GetWorkerName() const { return "Wii Speak Worker"; }
   std::string GetInputDeviceId() const override
   {
     return Config::Get(Config::MAIN_WII_SPEAK_MICROPHONE);

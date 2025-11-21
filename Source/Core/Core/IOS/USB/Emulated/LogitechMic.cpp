@@ -65,17 +65,13 @@ class MicrophoneLogitech final : public Microphone
 {
 public:
   explicit MicrophoneLogitech(const LogitechMicState& sampler, u8 index)
-      : Microphone(sampler, GetWorkerName()), m_sampler(sampler), m_index(index)
+      : Microphone(sampler, fmt::format("Logitech Mic {}", index)), m_sampler(sampler),
+        m_index(index)
   {
   }
 
 private:
 #ifdef HAVE_CUBEB
-  std::string GetWorkerName() const
-  {
-    return "Logitech USB Microphone Worker " + std::to_string(m_index);
-  }
-
   std::string GetInputDeviceId() const override
   {
     return Config::Get(Config::MAIN_LOGITECH_MIC_MICROPHONE[m_index]);
